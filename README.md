@@ -68,4 +68,4 @@ Onde:
 
 ## Observação conceitual
 
-A redução transitiva, no sentido clássico, é uma operação naturalmente definida para grafos direcionados, especialmente DAGs. Para grafos não direcionados, a operação análoga implementada aqui é uma redução de conectividade: remove ciclos e mantém uma floresta geradora, preservando quais vértices são alcançáveis entre si.
+A redução transitiva, é uma operação naturalmente definida para grafos direcionados, especialmente DAGs. Para grafos não direcionados, a operação análoga implementada aqui é uma redução de conectividade: remove ciclos e mantém uma floresta geradora, preservando quais vértices são alcançáveis entre si.
