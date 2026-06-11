@@ -5,7 +5,7 @@ class Edge
 {
 private:
     int id_neighbor;
-    Edge *next;
+    Edge *next; 
 
 public:
     explicit Edge(int id_neighbor);

@@ -25,13 +25,7 @@ void runDirectedExample()
     GraphInMatrix matrix_graph(6, true);
 
     int edges[][2] = {
-        {0, 1}, {0, 2}, {0, 3},
-        {1, 2}, {1, 3},
-        {2, 3}, {2, 4},
-        {3, 4},
-        {4, 5},
-        {0, 5}, {1, 5}
-    };
+        {0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 3}, {2, 3}, {2, 4}, {3, 4}, {4, 5}, {0, 5}, {1, 5}};
 
     int edge_count = sizeof(edges) / sizeof(edges[0]);
     for (int i = 0; i < edge_count; i++)
@@ -70,10 +64,7 @@ void runUndirectedExample()
     GraphInMatrix matrix_graph(7, false);
 
     int edges[][2] = {
-        {0, 1}, {0, 2}, {1, 2},
-        {1, 3}, {2, 3}, {3, 4},
-        {4, 5}, {5, 6}, {4, 6}
-    };
+        {0, 1}, {0, 2}, {1, 2}, {1, 3}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {4, 6}};
 
     int edge_count = sizeof(edges) / sizeof(edges[0]);
     for (int i = 0; i < edge_count; i++)

@@ -23,3 +23,4 @@ Pensando nesse mesmo exemplo. Podemos talvez remover essa cláusula e ao
 invés criar um check para comparar, só percorrer sempre, e se o grupo novo tiver
 contido nele algum dos antigos, remover o antigo
 
+Podemos implementar?
