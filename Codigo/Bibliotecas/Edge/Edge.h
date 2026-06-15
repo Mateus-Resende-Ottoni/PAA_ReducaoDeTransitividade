@@ -11,7 +11,7 @@
  * lista de u significa que há uma aresta u -> v no caso direcionado, ou uma
  * das duas metades da aresta {u, v} no caso não direcionado.
  *
- * A classe é propositalmente pequena: ela não conhece o vértice de origem,
+ * A classe é pequena de propósito: ela não conhece o vértice de origem,
  * não conhece o grafo inteiro e não decide se o grafo é direcionado. Essas
  * responsabilidades pertencem a Vertex e GraphInList.
  */
