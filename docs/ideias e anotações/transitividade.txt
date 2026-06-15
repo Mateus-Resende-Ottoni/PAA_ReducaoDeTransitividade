@@ -24,3 +24,7 @@ invés criar um check para comparar, só percorrer sempre, e se o grupo novo tiv
 contido nele algum dos antigos, remover o antigo
 
 Podemos implementar?
+Sim, usar a ideia de ordenação topológica. Usar ordenação topológica reversa com conjunto de bits. Ver sobre isso. 
+Primeiro, rodar uma DFS modificada para gerar uma ordem topológica dos nós. Em um DAG, as arestas sempre apontam de nós que aparecem "mais cedo" na ordem para nós que aparecem "mais tarde".
+
+Ai na avaliação de trás pra frente, ao inves de propagar os grupos de quem envia, é construida a alcançabilidade processando os nós do primeiro para o último. Ver se isso funde a matriz matemática do algoritmo de Warshall com a fluidez da lista de adjacência.
