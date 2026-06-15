@@ -114,7 +114,7 @@ void Vertex::printEdges() const
     Edge *current = head;
     if (current == nullptr)
     {
-        std::cout << "(sem arestas)";
+        std::cout << "ninguem";
     }
 
     while (current != nullptr)
