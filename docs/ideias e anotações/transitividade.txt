@@ -29,4 +29,4 @@ Primeiro, rodar uma DFS modificada para gerar uma ordem topológica dos nós. Em
 
 Ai na avaliação de trás pra frente, ao inves de propagar os grupos de quem envia, é construida a alcançabilidade processando os nós do primeiro para o último. Ver se isso funde a matriz matemática do algoritmo de Warshall com a fluidez da lista de adjacência.
 
--- pesquisar sobre Ordenação Topológica Reversa e Bitsets
+-- pesquisar sobre Ordenação Topológica Reversa e Bitsets. Guloso? 

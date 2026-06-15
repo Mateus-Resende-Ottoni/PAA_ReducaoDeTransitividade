@@ -1,0 +1,5 @@
+Em um grafo não direcionado, qualquer aresta que faça parte de um ciclo é redundante para a conectividade. Portanto, a "redução" máxima de um grafo não direcionado que preserva perfeitamente quem alcança quem é a remoção de todos os ciclos. O resultado disso é uma Floresta Geradora ou uma Árvore Geradora, caso o grafo original seja um componente único totalmente conectado. 
+
+-- Levar isso em consideração no relatório final porque é uma das coisas que o Silvio pede. 
+
+Redução de transitividade é pra grafos direcionados naturalmente, se for pra grafos não direcionados, vira redução de conectividade, porque podemos reduzir isso a "tem ciclo ou não?" Porque se tem, então tem uma aresta redundante ai nesse meio. (Usar floresta geradora por DFS)
