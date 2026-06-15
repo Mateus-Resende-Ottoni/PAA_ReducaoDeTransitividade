@@ -1,6 +1,37 @@
 #include "GraphInList.h"
+#include <cstddef>
 #include <iostream>
+#include <queue>
 #include <stdexcept>
+
+namespace
+{
+    const int BITS_PER_WORD = 64;
+
+    int wordCountForBits(int number_of_bits)
+    {
+        return (number_of_bits + BITS_PER_WORD - 1) / BITS_PER_WORD;
+    }
+
+    void setBit(std::vector<unsigned long long> &bits, int position)
+    {
+        bits[position / BITS_PER_WORD] |= (1ULL << (position % BITS_PER_WORD));
+    }
+
+    bool getBit(const std::vector<unsigned long long> &bits, int position)
+    {
+        return (bits[position / BITS_PER_WORD] & (1ULL << (position % BITS_PER_WORD))) != 0ULL;
+    }
+
+    void unionBits(std::vector<unsigned long long> &destination,
+                   const std::vector<unsigned long long> &source)
+    {
+        for (std::size_t i = 0; i < destination.size(); i++)
+        {
+            destination[i] |= source[i];
+        }
+    }
+}
 
 GraphInList::GraphInList(int num_vertex, bool is_directed)
 {
@@ -30,6 +61,8 @@ GraphInList::GraphInList(const GraphInList &other)
         vertex[i].setId(i);
     }
 
+    // Cópia profunda: cada objeto Edge é recriado no novo grafo. Isso evita
+    // dois grafos apontando para a mesma lista encadeada de arestas.
     for (int u = 0; u < num_vertex; u++)
     {
         Edge *current = other.vertex[u].getHead();
@@ -47,6 +80,8 @@ GraphInList::GraphInList(GraphInList &&other) noexcept
     this->is_directed = other.is_directed;
     this->vertex = other.vertex;
 
+    // O grafo de origem perde a posse do vetor para que seu destrutor não libere
+    // a memória que agora pertence ao objeto movido.
     other.num_vertex = 0;
     other.is_directed = true;
     other.vertex = nullptr;
@@ -147,6 +182,11 @@ bool GraphInList::addEdge(int u, int v)
     validateVertex(u);
     validateVertex(v);
 
+    if (u == v)
+    {
+        throw std::invalid_argument("Lacos u->u nao sao aceitos neste trabalho; use grafos simples.");
+    }
+
     bool inserted = vertex[u].addEdge(v);
 
     if (!is_directed)
@@ -193,6 +233,8 @@ bool GraphInList::shouldIgnoreEdge(int u, int v, int ignored_u, int ignored_v) c
         return true;
     }
 
+    // Em grafo não direcionado, ignorar {u, v} significa ignorar os dois
+    // registros internos u->v e v->u.
     if (!is_directed && u == ignored_v && v == ignored_u)
     {
         return true;
@@ -254,6 +296,77 @@ bool GraphInList::pathExistsDFS(int source, int target, int ignored_u, int ignor
     return found;
 }
 
+std::vector<int> GraphInList::getOutgoingNeighbors(int u) const
+{
+    validateVertex(u);
+
+    std::vector<int> neighbors;
+    Edge *edge = vertex[u].getHead();
+    while (edge != nullptr)
+    {
+        neighbors.push_back(edge->getIdNeighbor());
+        edge = edge->getNext();
+    }
+    return neighbors;
+}
+
+std::vector<int> GraphInList::topologicalOrderByKahn() const
+{
+    if (!is_directed)
+    {
+        throw std::logic_error("Ordenacao topologica e definida para grafos direcionados.");
+    }
+
+    std::vector<int> indegree(num_vertex, 0);
+    for (int u = 0; u < num_vertex; u++)
+    {
+        Edge *edge = vertex[u].getHead();
+        while (edge != nullptr)
+        {
+            indegree[edge->getIdNeighbor()]++;
+            edge = edge->getNext();
+        }
+    }
+
+    std::queue<int> zero_indegree;
+    for (int u = 0; u < num_vertex; u++)
+    {
+        if (indegree[u] == 0)
+        {
+            zero_indegree.push(u);
+        }
+    }
+
+    std::vector<int> order;
+    order.reserve(num_vertex);
+
+    while (!zero_indegree.empty())
+    {
+        int u = zero_indegree.front();
+        zero_indegree.pop();
+        order.push_back(u);
+
+        Edge *edge = vertex[u].getHead();
+        while (edge != nullptr)
+        {
+            int v = edge->getIdNeighbor();
+            indegree[v]--;
+            if (indegree[v] == 0)
+            {
+                zero_indegree.push(v);
+            }
+            edge = edge->getNext();
+        }
+    }
+
+    if (static_cast<int>(order.size()) != num_vertex)
+    {
+        throw std::logic_error("O grafo direcionado contem ciclo; reducao por ordem topologica reversa exige DAG.");
+    }
+
+    return order;
+}
+
 GraphInList GraphInList::transitiveReductionByDFS() const
 {
     if (!is_directed)
@@ -263,6 +376,8 @@ GraphInList GraphInList::transitiveReductionByDFS() const
 
     GraphInList reduced(*this);
 
+    // Para cada aresta u->v, remove-a temporariamente do raciocínio e pergunta:
+    // ainda existe caminho de u até v? Se sim, a aresta direta é redundante.
     for (int u = 0; u < num_vertex; u++)
     {
         Edge *edge = this->vertex[u].getHead();
@@ -276,6 +391,66 @@ GraphInList GraphInList::transitiveReductionByDFS() const
             }
 
             edge = edge->getNext();
+        }
+    }
+
+    return reduced;
+}
+
+GraphInList GraphInList::transitiveReductionByReverseTopologicalOrder() const
+{
+    if (!is_directed)
+    {
+        throw std::logic_error("Reducao transitiva por ordem topologica reversa e propria para grafos direcionados aciclicos.");
+    }
+
+    std::vector<int> topological_order = topologicalOrderByKahn();
+    int words = wordCountForBits(num_vertex);
+
+    // reachable[u] é um conjunto de bits: reachable[u][v] = 1 significa que v
+    // é alcançável a partir de u no grafo original. A ordem reversa garante que
+    // todos os sucessores de u já tiveram seus conjuntos calculados.
+    std::vector<std::vector<unsigned long long>> reachable(
+        num_vertex, std::vector<unsigned long long>(words, 0ULL));
+
+    for (int position = num_vertex - 1; position >= 0; position--)
+    {
+        int u = topological_order[position];
+        std::vector<int> neighbors = getOutgoingNeighbors(u);
+
+        for (int v : neighbors)
+        {
+            setBit(reachable[u], v);
+            unionBits(reachable[u], reachable[v]);
+        }
+    }
+
+    GraphInList reduced(num_vertex, true);
+
+    // A aresta u->v é redundante quando existe outro sucessor direto w de u
+    // que já alcança v. Nesse caso, o caminho u->w...v substitui u->v sem
+    // alterar a atingibilidade de u para v nem dos demais pares.
+    for (int u = 0; u < num_vertex; u++)
+    {
+        std::vector<int> neighbors = getOutgoingNeighbors(u);
+
+        for (int v : neighbors)
+        {
+            bool redundant = false;
+
+            for (int w : neighbors)
+            {
+                if (w != v && getBit(reachable[w], v))
+                {
+                    redundant = true;
+                    break;
+                }
+            }
+
+            if (!redundant)
+            {
+                reduced.addEdge(u, v);
+            }
         }
     }
 
@@ -316,6 +491,8 @@ GraphInList GraphInList::connectivityReductionUndirectedByDFS() const
         visited[i] = false;
     }
 
+    // Se o grafo tiver mais de um componente, o laço inicia uma nova árvore em
+    // cada componente. O resultado geral é uma floresta geradora.
     for (int u = 0; u < num_vertex; u++)
     {
         if (!visited[u])

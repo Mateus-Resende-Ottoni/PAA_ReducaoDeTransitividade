@@ -43,11 +43,14 @@ bool Vertex::hasEdge(int id_neighbor) const
 
 bool Vertex::addEdge(int id_neighbor)
 {
+    // Mantém o grafo simples: não insere arestas paralelas iguais.
     if (hasEdge(id_neighbor))
     {
         return false;
     }
 
+    // Inserção no início é O(1). A ordem visual de impressão pode ficar
+    // invertida em relação à ordem de leitura, mas isso não altera o grafo.
     Edge *new_edge = new Edge(id_neighbor);
     new_edge->setNext(head);
     head = new_edge;
