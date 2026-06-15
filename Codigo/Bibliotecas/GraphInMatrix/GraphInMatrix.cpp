@@ -1,6 +1,37 @@
 #include "GraphInMatrix.h"
+#include <cstddef>
 #include <iostream>
+#include <queue>
 #include <stdexcept>
+
+namespace
+{
+    const int BITS_PER_WORD = 64;
+
+    int wordCountForBits(int number_of_bits)
+    {
+        return (number_of_bits + BITS_PER_WORD - 1) / BITS_PER_WORD;
+    }
+
+    void setBit(std::vector<unsigned long long> &bits, int position)
+    {
+        bits[position / BITS_PER_WORD] |= (1ULL << (position % BITS_PER_WORD));
+    }
+
+    bool getBit(const std::vector<unsigned long long> &bits, int position)
+    {
+        return (bits[position / BITS_PER_WORD] & (1ULL << (position % BITS_PER_WORD))) != 0ULL;
+    }
+
+    void unionBits(std::vector<unsigned long long> &destination,
+                   const std::vector<unsigned long long> &source)
+    {
+        for (std::size_t i = 0; i < destination.size(); i++)
+        {
+            destination[i] |= source[i];
+        }
+    }
+}
 
 GraphInMatrix::GraphInMatrix(int num_vertex, bool is_directed)
 {
@@ -168,6 +199,11 @@ bool GraphInMatrix::addEdge(int u, int v)
     validateVertex(u);
     validateVertex(v);
 
+    if (u == v)
+    {
+        throw std::invalid_argument("Lacos u->u nao sao aceitos neste trabalho; use grafos simples.");
+    }
+
     bool inserted = (matrix[u][v] == 0);
     matrix[u][v] = 1;
 
@@ -276,6 +312,79 @@ bool GraphInMatrix::pathExistsDFS(int source, int target, int ignored_u, int ign
     return found;
 }
 
+std::vector<int> GraphInMatrix::getOutgoingNeighbors(int u) const
+{
+    validateVertex(u);
+
+    std::vector<int> neighbors;
+    for (int v = 0; v < num_vertex; v++)
+    {
+        if (matrix[u][v] != 0)
+        {
+            neighbors.push_back(v);
+        }
+    }
+    return neighbors;
+}
+
+std::vector<int> GraphInMatrix::topologicalOrderByKahn() const
+{
+    if (!is_directed)
+    {
+        throw std::logic_error("Ordenacao topologica e definida para grafos direcionados.");
+    }
+
+    std::vector<int> indegree(num_vertex, 0);
+    for (int u = 0; u < num_vertex; u++)
+    {
+        for (int v = 0; v < num_vertex; v++)
+        {
+            if (matrix[u][v] != 0)
+            {
+                indegree[v]++;
+            }
+        }
+    }
+
+    std::queue<int> zero_indegree;
+    for (int u = 0; u < num_vertex; u++)
+    {
+        if (indegree[u] == 0)
+        {
+            zero_indegree.push(u);
+        }
+    }
+
+    std::vector<int> order;
+    order.reserve(num_vertex);
+
+    while (!zero_indegree.empty())
+    {
+        int u = zero_indegree.front();
+        zero_indegree.pop();
+        order.push_back(u);
+
+        for (int v = 0; v < num_vertex; v++)
+        {
+            if (matrix[u][v] != 0)
+            {
+                indegree[v]--;
+                if (indegree[v] == 0)
+                {
+                    zero_indegree.push(v);
+                }
+            }
+        }
+    }
+
+    if (static_cast<int>(order.size()) != num_vertex)
+    {
+        throw std::logic_error("O grafo direcionado contem ciclo; Warshall para DAG e ordem topologica reversa exigem DAG.");
+    }
+
+    return order;
+}
+
 GraphInMatrix GraphInMatrix::transitiveReductionByDFS() const
 {
     if (!is_directed)
@@ -285,6 +394,8 @@ GraphInMatrix GraphInMatrix::transitiveReductionByDFS() const
 
     GraphInMatrix reduced(*this);
 
+    // Critério operacional de redundância: a aresta u->v só pode ser removida
+    // se já houver outro caminho de u até v sem usar essa própria aresta.
     for (int u = 0; u < num_vertex; u++)
     {
         for (int v = 0; v < num_vertex; v++)
@@ -309,6 +420,12 @@ GraphInMatrix GraphInMatrix::transitiveReductionByWarshallForDAG() const
         throw std::logic_error("A reducao transitiva por Warshall foi implementada para grafos direcionados aciclicos.");
     }
 
+    // A chamada abaixo não é necessária para o algoritmo de Warshall em si,
+    // mas é importante conceitualmente: a redução transitiva única é garantida
+    // em DAGs. Em grafos com ciclos, o problema exige tratamento por componentes
+    // fortemente conexos ou outra política de escolha.
+    topologicalOrderByKahn();
+
     bool **reach = new bool *[num_vertex];
     for (int i = 0; i < num_vertex; i++)
     {
@@ -319,6 +436,8 @@ GraphInMatrix GraphInMatrix::transitiveReductionByWarshallForDAG() const
         }
     }
 
+    // Warshall calcula o fecho transitivo: ao final, reach[i][j] informa se j
+    // é alcançável a partir de i por algum caminho de tamanho pelo menos 1.
     for (int k = 0; k < num_vertex; k++)
     {
         for (int i = 0; i < num_vertex; i++)
@@ -361,6 +480,61 @@ GraphInMatrix GraphInMatrix::transitiveReductionByWarshallForDAG() const
         delete[] reach[i];
     }
     delete[] reach;
+
+    return reduced;
+}
+
+GraphInMatrix GraphInMatrix::transitiveReductionByReverseTopologicalOrder() const
+{
+    if (!is_directed)
+    {
+        throw std::logic_error("Reducao transitiva por ordem topologica reversa e propria para grafos direcionados aciclicos.");
+    }
+
+    std::vector<int> topological_order = topologicalOrderByKahn();
+    int words = wordCountForBits(num_vertex);
+
+    std::vector<std::vector<unsigned long long>> reachable(
+        num_vertex, std::vector<unsigned long long>(words, 0ULL));
+
+    for (int position = num_vertex - 1; position >= 0; position--)
+    {
+        int u = topological_order[position];
+        for (int v = 0; v < num_vertex; v++)
+        {
+            if (matrix[u][v] != 0)
+            {
+                setBit(reachable[u], v);
+                unionBits(reachable[u], reachable[v]);
+            }
+        }
+    }
+
+    GraphInMatrix reduced(num_vertex, true);
+
+    for (int u = 0; u < num_vertex; u++)
+    {
+        std::vector<int> neighbors = getOutgoingNeighbors(u);
+
+        for (int v : neighbors)
+        {
+            bool redundant = false;
+
+            for (int w : neighbors)
+            {
+                if (w != v && getBit(reachable[w], v))
+                {
+                    redundant = true;
+                    break;
+                }
+            }
+
+            if (!redundant)
+            {
+                reduced.addEdge(u, v);
+            }
+        }
+    }
 
     return reduced;
 }

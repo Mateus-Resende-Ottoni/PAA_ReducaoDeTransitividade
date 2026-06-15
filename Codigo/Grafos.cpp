@@ -1,9 +1,25 @@
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 #include "Bibliotecas/GraphInList/GraphInList.h"
 #include "Bibliotecas/GraphInMatrix/GraphInMatrix.h"
+
+/*
+ * Arquivo principal do trabalho.
+ * -----------------------------
+ * Este arquivo não implementa as estruturas internas do grafo; ele monta
+ * exemplos, lê grafos de arquivo e executa as abordagens disponíveis:
+ *
+ *   1. Redução transitiva por DFS.
+ *   2. Redução transitiva por Warshall/fecho transitivo para DAGs.
+ *   3. Redução transitiva por ordenação topológica reversa para DAGs.
+ *   4. Redução de conectividade por floresta geradora em grafos não direcionados.
+ *
+ * A separação é intencional: as classes GraphInList e GraphInMatrix concentram
+ * a lógica algorítmica, enquanto main apenas demonstra e coordena a execução.
+ */
 
 void printLine(const std::string &title)
 {
@@ -15,6 +31,11 @@ void printLine(const std::string &title)
 void printReachabilityResult(bool ok)
 {
     std::cout << "Preserva atingibilidade? " << (ok ? "SIM" : "NAO") << "\n";
+}
+
+void printSkippedAlgorithm(const std::string &algorithm_name, const std::exception &ex)
+{
+    std::cout << "\n" << algorithm_name << " nao executada: " << ex.what() << "\n";
 }
 
 void runDirectedExample()
@@ -37,10 +58,22 @@ void runDirectedExample()
     std::cout << "\nGrafo original em lista de adjacencia:\n";
     list_graph.printGraphInList();
 
-    GraphInList reduced_list = list_graph.transitiveReductionByDFS();
+    GraphInList reduced_list_dfs = list_graph.transitiveReductionByDFS();
     std::cout << "\nReducao transitiva por DFS com lista de adjacencia:\n";
-    reduced_list.printGraphInList();
-    printReachabilityResult(list_graph.hasSameReachabilityAs(reduced_list));
+    reduced_list_dfs.printGraphInList();
+    printReachabilityResult(list_graph.hasSameReachabilityAs(reduced_list_dfs));
+
+    try
+    {
+        GraphInList reduced_list_topological = list_graph.transitiveReductionByReverseTopologicalOrder();
+        std::cout << "\nReducao transitiva por ordenacao topologica reversa com lista de adjacencia:\n";
+        reduced_list_topological.printGraphInList();
+        printReachabilityResult(list_graph.hasSameReachabilityAs(reduced_list_topological));
+    }
+    catch (const std::exception &ex)
+    {
+        printSkippedAlgorithm("Reducao por ordem topologica reversa/lista", ex);
+    }
 
     std::cout << "\nGrafo original em matriz de adjacencia:\n";
     matrix_graph.printGraphInMatrix();
@@ -50,10 +83,29 @@ void runDirectedExample()
     reduced_matrix_dfs.printGraphInMatrix();
     printReachabilityResult(matrix_graph.hasSameReachabilityAs(reduced_matrix_dfs));
 
-    GraphInMatrix reduced_matrix_warshall = matrix_graph.transitiveReductionByWarshallForDAG();
-    std::cout << "\nReducao transitiva por Warshall/fecho transitivo para DAG:\n";
-    reduced_matrix_warshall.printGraphInMatrix();
-    printReachabilityResult(matrix_graph.hasSameReachabilityAs(reduced_matrix_warshall));
+    try
+    {
+        GraphInMatrix reduced_matrix_warshall = matrix_graph.transitiveReductionByWarshallForDAG();
+        std::cout << "\nReducao transitiva por Warshall/fecho transitivo para DAG:\n";
+        reduced_matrix_warshall.printGraphInMatrix();
+        printReachabilityResult(matrix_graph.hasSameReachabilityAs(reduced_matrix_warshall));
+    }
+    catch (const std::exception &ex)
+    {
+        printSkippedAlgorithm("Reducao por Warshall/matriz", ex);
+    }
+
+    try
+    {
+        GraphInMatrix reduced_matrix_topological = matrix_graph.transitiveReductionByReverseTopologicalOrder();
+        std::cout << "\nReducao transitiva por ordenacao topologica reversa com matriz de adjacencia:\n";
+        reduced_matrix_topological.printGraphInMatrix();
+        printReachabilityResult(matrix_graph.hasSameReachabilityAs(reduced_matrix_topological));
+    }
+    catch (const std::exception &ex)
+    {
+        printSkippedAlgorithm("Reducao por ordem topologica reversa/matriz", ex);
+    }
 }
 
 void runUndirectedExample()
@@ -108,7 +160,17 @@ void runFromFile(const std::string &file_name)
         throw std::runtime_error("Cabecalho invalido. Use: n m direcionado(0/1)");
     }
 
-    bool directed = (directed_flag != 0);
+    if (n < 0 || m < 0)
+    {
+        throw std::runtime_error("Cabecalho invalido: n e m devem ser nao negativos.");
+    }
+
+    if (directed_flag != 0 && directed_flag != 1)
+    {
+        throw std::runtime_error("Cabecalho invalido: direcionado deve ser 0 ou 1.");
+    }
+
+    bool directed = (directed_flag == 1);
     GraphInList list_graph(n, directed);
     GraphInMatrix matrix_graph(n, directed);
 
@@ -138,21 +200,52 @@ void runFromFile(const std::string &file_name)
 
     if (directed)
     {
-        GraphInList reduced_list = list_graph.transitiveReductionByDFS();
-        GraphInMatrix reduced_matrix = matrix_graph.transitiveReductionByDFS();
+        GraphInList reduced_list_dfs = list_graph.transitiveReductionByDFS();
+        GraphInMatrix reduced_matrix_dfs = matrix_graph.transitiveReductionByDFS();
 
         std::cout << "\nReducao transitiva por DFS/lista:\n";
-        reduced_list.printGraphInList();
-        printReachabilityResult(list_graph.hasSameReachabilityAs(reduced_list));
+        reduced_list_dfs.printGraphInList();
+        printReachabilityResult(list_graph.hasSameReachabilityAs(reduced_list_dfs));
 
         std::cout << "\nReducao transitiva por DFS/matriz:\n";
-        reduced_matrix.printGraphInMatrix();
-        printReachabilityResult(matrix_graph.hasSameReachabilityAs(reduced_matrix));
+        reduced_matrix_dfs.printGraphInMatrix();
+        printReachabilityResult(matrix_graph.hasSameReachabilityAs(reduced_matrix_dfs));
 
-        GraphInMatrix reduced_warshall = matrix_graph.transitiveReductionByWarshallForDAG();
-        std::cout << "\nReducao por Warshall/fecho transitivo (indicada para DAG):\n";
-        reduced_warshall.printGraphInMatrix();
-        printReachabilityResult(matrix_graph.hasSameReachabilityAs(reduced_warshall));
+        try
+        {
+            GraphInMatrix reduced_warshall = matrix_graph.transitiveReductionByWarshallForDAG();
+            std::cout << "\nReducao por Warshall/fecho transitivo para DAG:\n";
+            reduced_warshall.printGraphInMatrix();
+            printReachabilityResult(matrix_graph.hasSameReachabilityAs(reduced_warshall));
+        }
+        catch (const std::exception &ex)
+        {
+            printSkippedAlgorithm("Reducao por Warshall/matriz", ex);
+        }
+
+        try
+        {
+            GraphInList reduced_list_topological = list_graph.transitiveReductionByReverseTopologicalOrder();
+            std::cout << "\nReducao por ordenacao topologica reversa/lista:\n";
+            reduced_list_topological.printGraphInList();
+            printReachabilityResult(list_graph.hasSameReachabilityAs(reduced_list_topological));
+        }
+        catch (const std::exception &ex)
+        {
+            printSkippedAlgorithm("Reducao por ordem topologica reversa/lista", ex);
+        }
+
+        try
+        {
+            GraphInMatrix reduced_matrix_topological = matrix_graph.transitiveReductionByReverseTopologicalOrder();
+            std::cout << "\nReducao por ordenacao topologica reversa/matriz:\n";
+            reduced_matrix_topological.printGraphInMatrix();
+            printReachabilityResult(matrix_graph.hasSameReachabilityAs(reduced_matrix_topological));
+        }
+        catch (const std::exception &ex)
+        {
+            printSkippedAlgorithm("Reducao por ordem topologica reversa/matriz", ex);
+        }
     }
     else
     {

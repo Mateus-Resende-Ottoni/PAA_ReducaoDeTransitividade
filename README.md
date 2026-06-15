@@ -1,6 +1,8 @@
 # PAA - Redução de Transitividade em Grafos
 
-Este projeto implementa, em C++, estruturas básicas de grafos e algoritmos para o trabalho de Projeto e Análise de Algoritmos.
+Este projeto implementa, em C++, estruturas básicas de grafos e diferentes estratégias para o trabalho de Projeto e Análise de Algoritmos.
+
+O foco principal é a **remoção de arestas redundantes preservando a atingibilidade** entre os vértices. Em grafos direcionados acíclicos, isso corresponde à redução transitiva clássica. Em grafos não direcionados, a noção foi tratada separadamente como **redução de conectividade**, pois a ideia de transitividade é naturalmente orientada por direção de caminho.
 
 ## O que foi implementado
 
@@ -11,9 +13,11 @@ Este projeto implementa, em C++, estruturas básicas de grafos e algoritmos para
 - Busca em profundidade para verificar atingibilidade.
 - Redução transitiva segura por DFS para grafos direcionados.
 - Redução por fecho transitivo/Warshall para DAGs, usando matriz de adjacência.
+- Redução transitiva por **ordenação topológica reversa**, implementada em lista e matriz.
 - Redução de conectividade para grafos não direcionados, por floresta geradora DFS.
 - Validação simples de preservação de atingibilidade.
-- Execução com exemplos internos ou com arquivo de entrada.
+- Tratamento mais robusto para entradas inválidas, laços, ciclos em algoritmos que exigem DAG e cabeçalhos de arquivo incorretos.
+- Comentários explicativos no código, priorizando documentação de decisões algorítmicas e responsabilidades das classes.
 
 ## Compilação
 
@@ -66,6 +70,32 @@ Onde:
 - `direcionado` = `1` para grafo direcionado e `0` para grafo não direcionado.
 - Cada linha seguinte contém uma aresta `u v`.
 
+## Abordagens de redução implementadas
+
+### 1. Redução transitiva por DFS
+
+Para cada aresta `u -> v`, o algoritmo verifica se ainda existe caminho de `u` até `v` ignorando essa própria aresta. Se existir, a aresta direta é redundante e pode ser removida sem alterar a atingibilidade.
+
+Essa abordagem é simples, direta e funciona como uma interpretação operacional do enunciado. Ela tende a ser mais cara porque pode executar uma DFS para muitas arestas.
+
+### 2. Redução por Warshall / fecho transitivo
+
+Na matriz de adjacência, o algoritmo de Warshall calcula o fecho transitivo do grafo. Depois, uma aresta `u -> v` é considerada redundante quando existe outro sucessor direto `w` de `u` tal que `w` alcança `v`.
+
+Esta abordagem foi restringida a DAGs, pois a redução transitiva clássica é única em grafos direcionados acíclicos. Em grafos direcionados com ciclos, o problema passa a exigir escolhas adicionais, como tratamento por componentes fortemente conexos.
+
+### 3. Redução por ordenação topológica reversa
+
+Essa é a terceira abordagem adicionada ao projeto.
+
+O algoritmo primeiro calcula uma ordenação topológica usando o algoritmo de Kahn. Em seguida, percorre os vértices de trás para frente. Como o grafo é um DAG, todos os sucessores de um vértice `u` aparecem depois de `u` na ordenação topológica; logo, ao processar `u` em ordem reversa, a atingibilidade dos sucessores já está conhecida.
+
+O algoritmo mantém um conjunto de bits `reachable[u]` indicando quais vértices são alcançáveis a partir de `u`. A aresta `u -> v` é removida se existir outro sucessor direto `w` de `u` que já alcance `v`, pois o caminho `u -> w ... v` substitui a aresta direta.
+
+### 4. Redução de conectividade em grafos não direcionados
+
+Em grafos não direcionados, a operação equivalente não é redução transitiva no mesmo sentido de DAGs. A solução implementada remove ciclos e preserva componentes conexos, produzindo uma árvore geradora quando o grafo é conexo ou uma floresta geradora quando há múltiplos componentes.
+
 ## Observação conceitual
 
-A redução transitiva, é uma operação naturalmente definida para grafos direcionados, especialmente DAGs. Para grafos não direcionados, a operação análoga implementada aqui é uma redução de conectividade: remove ciclos e mantém uma floresta geradora, preservando quais vértices são alcançáveis entre si.
+A redução transitiva é naturalmente definida para grafos direcionados, especialmente DAGs. Para grafos não direcionados, a operação análoga implementada aqui é uma redução de conectividade: remove ciclos e mantém uma floresta geradora, preservando quais vértices são alcançáveis entre si.

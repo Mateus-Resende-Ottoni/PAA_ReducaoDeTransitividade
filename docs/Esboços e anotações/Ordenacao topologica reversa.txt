@@ -1,0 +1,10 @@
+Ordenação topológica reversa como terceira abordagem
+
+A abordagem por ordenação topológica reversa foi adicionada para DAGs. Ela une duas ideias:
+
+1. A ordenação topológica garante que, se existe uma aresta u -> v, então u aparece antes de v.
+2. Ao percorrer a ordem de trás para frente, todos os sucessores de u já tiveram seus conjuntos de alcançabilidade calculados.
+
+Para cada vértice u, calculamos reachable[u], isto é, o conjunto de vértices alcançáveis a partir de u. Para cada aresta u -> v, verificamos se existe outro sucessor direto w de u tal que w alcança v. Se sim, a aresta u -> v é transitiva/redundante, porque o caminho u -> w ... v preserva a alcançabilidade sem a aresta direta.
+
+Essa abordagem exige DAG. Se o grafo tem ciclo, não existe ordenação topológica total; por isso o código detecta o ciclo pelo algoritmo de Kahn e não executa esse método nesse caso.
