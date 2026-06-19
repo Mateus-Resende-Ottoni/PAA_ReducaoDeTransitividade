@@ -3,3 +3,7 @@ Em um grafo não direcionado, qualquer aresta que faça parte de um ciclo é red
 -- Levar isso em consideração no relatório final porque é uma das coisas que o Silvio pede. 
 
 Redução de transitividade é pra grafos direcionados naturalmente, se for pra grafos não direcionados, vira redução de conectividade, porque podemos reduzir isso a "tem ciclo ou não?" Porque se tem, então tem uma aresta redundante ai nesse meio. (Usar floresta geradora por DFS)
+
+________________________________________________________________________________________
+
+Silvio falou que redução de conectividade não é a forma correta de descrever a redução de transitividade em grafos não direcionados.
