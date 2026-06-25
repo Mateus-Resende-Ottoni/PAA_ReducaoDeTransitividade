@@ -41,6 +41,12 @@ g++ -std=c++17 -Wall -Wextra -pedantic -O2 \
 
 ## Execução
 
+### Rodar bateria de testes
+```bash
+./paa_transitividade --test
+```
+Resultados são guardados no arquivo "resultados_paa.csv",  na pasta "Resultados" na raiz do projeto
+
 ### Rodar exemplos internos
 
 ```bash
@@ -69,6 +75,20 @@ Onde:
 - `m` = número de arestas.
 - `direcionado` = `1` para grafo direcionado e `0` para grafo não direcionado.
 - Cada linha seguinte contém uma aresta `u v`.
+
+### Gerar graficos
+Requer a instalação de pandas, matplotlib, seaborn em python 
+
+```bash
+pip install pandas matplotlib seaborn
+```
+
+Para gerar, basta usar o comando, na pasta raiz, num ambient python (env)
+
+```bash
+python plotar_resultados.py
+```
+A imagem resultante chamada "analise_assintotica_reducao.png" estará na pasta "Resultados"
 
 ## Abordagens de redução implementadas
 

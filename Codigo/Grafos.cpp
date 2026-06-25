@@ -2,6 +2,10 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <chrono>
+#include <random>
+#include <vector>
+#include <utility>
 
 #include "Bibliotecas/GraphInList/GraphInList.h"
 #include "Bibliotecas/GraphInMatrix/GraphInMatrix.h"
@@ -20,6 +24,125 @@
  * A separação é intencional: as classes GraphInList e GraphInMatrix concentram
  * a lógica algorítmica, enquanto main apenas demonstra e coordena a execução.
  */
+
+
+// Usa ponteiros/funções lambda para executar qualquer um dos métodos
+template <typename Func>
+double measureRuntimeMicroseconds(Func algoritmo) {
+    const int NUM_EXECUCOES = 30;
+
+    // 1. Warm-up (Ignorar este tempo)
+    algoritmo(); 
+
+    auto inicio = std::chrono::high_resolution_clock::now();
+
+    for (int i = 0; i < NUM_EXECUCOES; ++i) {
+        algoritmo();
+    }
+
+    // 4. Parar cronómetro e calcular média
+    auto fim = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::micro> duracao_total = fim - inicio;
+
+    return duracao_total.count() / NUM_EXECUCOES;
+}
+
+//Gera Directed Acyclical Graph (DAG) usando 
+void gerarDAG(int V, int E, GraphInList& grafoLista, GraphInMatrix& grafoMatriz) {
+
+    int maxE = V * (V - 1) / 2;
+
+    if (E > maxE) {
+        throw std::invalid_argument("Numero de arestas superior ao limite para que o grafo seja DAG");
+    }
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    std::uniform_int_distribution<> dist_u(0, V - 2);
+    
+    int arestas_inseridas = 0;
+    
+    std::vector<std::vector<bool>> existe_aresta(V + 1, std::vector<bool>(V + 1, false));
+
+    while (arestas_inseridas < E) {
+        int u = dist_u(gen);
+        std::uniform_int_distribution<> dist_v(u + 1, V-1); // Garante que v > u (Aciclicidade Matemática)
+        int v = dist_v(gen);
+
+        if (!existe_aresta[u][v]) {
+            existe_aresta[u][v] = true;
+            
+            grafoLista.addEdge(u, v); 
+            grafoMatriz.addEdge(u, v);
+            
+            arestas_inseridas++;
+        }
+    }
+}
+
+//Executa 30 vezes cada algoritmo com cada instância e calcula o valor médio do runtime de cada algoritmo para cada instância
+void runExperiments() {
+    std::cout << "Iniciando a bateria de testes empiricos...\n";
+    
+    std::ofstream csv("Resultados/resultados_paa.csv");
+    if (!csv.is_open()) {
+        throw std::runtime_error("Erro ao criar o arquivo CSV.");
+    }
+    
+    // Cabeçalho
+    csv << "Algoritmo,V,E,Densidade,TempoMedio_us,ArestasRemovidas\n";
+
+    // Tamanho das instâncias
+    std::vector<int> tamanhos_V = {10, 100, 500, 750, 1000};
+
+    for (int V : tamanhos_V) {
+        int e_esparso = 2 * V;
+        int e_denso = (V * (V - 1)) / 4; 
+        
+        std::vector<std::pair<int, std::string>> densidades = {
+            {e_esparso, "Esparsa"},
+            {e_denso, "Densa"}
+        };
+
+        for (const auto& densidade : densidades) {
+            int E = densidade.first;
+            std::string tipo_dens = densidade.second;
+            
+            std::cout << "Gerando DAG (V=" << V << ", E=" << E << ")..." << std::endl;
+
+            GraphInList grafo_lista(V, true);
+            GraphInMatrix grafo_matriz(V, true);
+            gerarDAG(V, E, grafo_lista, grafo_matriz);
+
+            // Medir Algoritmo 1: DFS em Lista
+            double tempo_dfs_lista = measureRuntimeMicroseconds([&]() {
+                return grafo_lista.transitiveReductionByDFS();
+            });
+            // NOTA: Para extrair as Arestas Removidas, rode o algoritmo uma vez separadamente 
+            // e subtraia (Arestas Originais - Arestas Reduzidas). Aqui uso um valor dummy 'X'.
+            csv << "DFS_Lista," << V << "," << E << "," << tipo_dens << "," 
+                << tempo_dfs_lista << ",X\n";
+
+            // Medir Algoritmo 2: Warshall em Matriz
+            double tempo_warshall = measureRuntimeMicroseconds([&]() {
+                return grafo_matriz.transitiveReductionByWarshallForDAG();
+            });
+            csv << "Warshall_Matriz," << V << "," << E << "," << tipo_dens << "," 
+                << tempo_warshall << ",X\n";
+
+            // Medir Algoritmo 3: Ordenação Topológica em Lista
+            double tempo_top = measureRuntimeMicroseconds([&]() {
+                return grafo_lista.transitiveReductionByReverseTopologicalOrder();
+            });
+            csv << "TopSort_Lista," << V << "," << E << "," << tipo_dens << "," 
+                << tempo_top << ",X\n";
+        }
+    }
+    
+    csv.close();
+    std::cout << "Experimentos concluidos com sucesso. Resultados guardados em 'resultados_paa.csv'.\n";
+}
 
 void printLine(const std::string &title)
 {
@@ -268,13 +391,18 @@ int main(int argc, char **argv)
     {
         if (argc >= 2)
         {
-            runFromFile(argv[1]);
+            std::string arg1 = argv[1];
+            if (arg1 == "--test" || arg1 == "-exp") {
+                runExperiments();
+            } else {
+                runFromFile(argv[1]);
+            }
         }
         else
         {
             runDirectedExample();
             runUndirectedExample();
-
+            
             printLine("Como testar com arquivo proprio");
             std::cout << "Formato do arquivo:\n";
             std::cout << "n m direcionado(0/1)\n";
@@ -286,9 +414,8 @@ int main(int argc, char **argv)
     }
     catch (const std::exception &ex)
     {
-        std::cerr << "Erro: " << ex.what() << '\n';
+        std::cerr << "Falha critica: " << ex.what() << '\n';
         return 1;
     }
-
     return 0;
 }
