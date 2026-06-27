@@ -23,6 +23,8 @@ namespace
         return (bits[position / BITS_PER_WORD] & (1ULL << (position % BITS_PER_WORD))) != 0ULL;
     }
 
+    // Otimiza o cálculo de alcançabilidade para DAGs esparsos aglutinando o estado em 
+    // palavras de 64 bits.
     void unionBits(std::vector<unsigned long long> &destination,
                    const std::vector<unsigned long long> &source)
     {
@@ -53,6 +55,8 @@ GraphInMatrix::GraphInMatrix(const GraphInMatrix &other)
     this->matrix = nullptr;
     allocateMatrix();
 
+    // Cópia profunda: garante que instâncias distintas não partilhem os mesmos 
+    // ponteiros de memória da matriz bidimensional.
     for (int i = 0; i < num_vertex; i++)
     {
         for (int j = 0; j < num_vertex; j++)
@@ -68,6 +72,7 @@ GraphInMatrix::GraphInMatrix(GraphInMatrix &&other) noexcept
     this->is_directed = other.is_directed;
     this->matrix = other.matrix;
 
+    // Transfere a posse dos ponteiros e limpa a origem para evitar dupla libertação.
     other.num_vertex = 0;
     other.is_directed = true;
     other.matrix = nullptr;
@@ -254,6 +259,8 @@ bool GraphInMatrix::shouldIgnoreEdge(int u, int v, int ignored_u, int ignored_v)
         return true;
     }
 
+    // Num grafo não direcionado, ignorar {u, v} exige ignorar ambos os registos
+    // internos u->v e v->u.
     if (!is_directed && u == ignored_v && v == ignored_u)
     {
         return true;
@@ -377,6 +384,8 @@ std::vector<int> GraphInMatrix::topologicalOrderByKahn() const
         }
     }
 
+    // A ordenação topológica exige a ausência de ciclos. A validação protege a
+    // integridade estrutural dos algoritmos subsequentes que requerem um DAG.
     if (static_cast<int>(order.size()) != num_vertex)
     {
         throw std::logic_error("O grafo direcionado contem ciclo; Warshall para DAG e ordem topologica reversa exigem DAG.");
@@ -395,7 +404,8 @@ GraphInMatrix GraphInMatrix::transitiveReductionByDFS() const
     GraphInMatrix reduced(*this);
 
     // Critério operacional de redundância: a aresta u->v só pode ser removida
-    // se já houver outro caminho de u até v sem usar essa própria aresta.
+    // se já houver outro caminho de u até v sem usar a referida aresta.
+    // O custo total na matriz alcança O(|E||V|^2).
     for (int u = 0; u < num_vertex; u++)
     {
         for (int v = 0; v < num_vertex; v++)
@@ -420,10 +430,8 @@ GraphInMatrix GraphInMatrix::transitiveReductionByWarshallForDAG() const
         throw std::logic_error("A reducao transitiva por Warshall foi implementada para grafos direcionados aciclicos.");
     }
 
-    // A chamada abaixo não é necessária para o algoritmo de Warshall em si,
-    // mas é importante conceitualmente: a redução transitiva única é garantida
-    // em DAGs. Em grafos com ciclos, o problema exige tratamento por componentes
-    // fortemente conexos ou outra política de escolha.
+    // A validação de aciclicidade garante que a redução transitiva seja única, 
+    // um pré-requisito teórico para a preservação restrita em DAGs.
     topologicalOrderByKahn();
 
     bool **reach = new bool *[num_vertex];
@@ -436,8 +444,8 @@ GraphInMatrix GraphInMatrix::transitiveReductionByWarshallForDAG() const
         }
     }
 
-    // Warshall calcula o fecho transitivo: ao final, reach[i][j] informa se j
-    // é alcançável a partir de i por algum caminho de tamanho pelo menos 1.
+    // O algoritmo de Warshall calcula o fecho transitivo em O(|V|^3).
+    // reach[i][j] será verdadeiro se j for alcançável por i em um caminho longo.
     for (int k = 0; k < num_vertex; k++)
     {
         for (int i = 0; i < num_vertex; i++)
@@ -497,6 +505,8 @@ GraphInMatrix GraphInMatrix::transitiveReductionByReverseTopologicalOrder() cons
     std::vector<std::vector<unsigned long long>> reachable(
         num_vertex, std::vector<unsigned long long>(words, 0ULL));
 
+    // A travessia reversa assegura que, no momento em que se visita um vértice u,
+    // a alcançabilidade de todos os seus sucessores já está calculada.
     for (int position = num_vertex - 1; position >= 0; position--)
     {
         int u = topological_order[position];
@@ -512,6 +522,8 @@ GraphInMatrix GraphInMatrix::transitiveReductionByReverseTopologicalOrder() cons
 
     GraphInMatrix reduced(num_vertex, true);
 
+    // Avalia a redundância recorrendo aos conjuntos de bits já processados.
+    // Uma aresta u->v é transitiva se existir outro vizinho w de u que alcance v.
     for (int u = 0; u < num_vertex; u++)
     {
         std::vector<int> neighbors = getOutgoingNeighbors(u);
@@ -568,6 +580,9 @@ GraphInMatrix GraphInMatrix::connectivityReductionUndirectedByDFS() const
         visited[i] = false;
     }
 
+    // Num grafo não direcionado, a simetria forçada origina ciclos de tamanho dois,
+    // o que invalida a redução baseada em DAGs. O foco é transferido para a
+    // preservação de conectividade, construindo-se uma floresta DFS.
     for (int u = 0; u < num_vertex; u++)
     {
         if (!visited[u])

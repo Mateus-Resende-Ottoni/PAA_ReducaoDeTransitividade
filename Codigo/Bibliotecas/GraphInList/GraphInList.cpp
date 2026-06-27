@@ -23,6 +23,8 @@ namespace
         return (bits[position / BITS_PER_WORD] & (1ULL << (position % BITS_PER_WORD))) != 0ULL;
     }
 
+    // Otimiza o cálculo de alcançabilidade para DAGs esparsos aglutinando o estado em 
+    // palavras de 64 bits.
     void unionBits(std::vector<unsigned long long> &destination,
                    const std::vector<unsigned long long> &source)
     {
@@ -359,6 +361,9 @@ std::vector<int> GraphInList::topologicalOrderByKahn() const
         }
     }
 
+
+    // A ordenação topológica exige a ausência de ciclos. A validação protege a
+    // integridade estrutural do algoritmo de redução subsequente.
     if (static_cast<int>(order.size()) != num_vertex)
     {
         throw std::logic_error("O grafo direcionado contem ciclo; reducao por ordem topologica reversa exige DAG.");
