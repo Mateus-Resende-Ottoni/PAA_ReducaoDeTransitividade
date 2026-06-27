@@ -2,7 +2,7 @@
 
 Este projeto implementa, em C++, estruturas básicas de grafos e diferentes estratégias para o trabalho de Projeto e Análise de Algoritmos.
 
-O foco principal é a **remoção de arestas redundantes preservando a atingibilidade** entre os vértices. Em grafos direcionados acíclicos, isso corresponde à redução transitiva clássica. Em grafos não direcionados, a noção foi tratada separadamente como **redução de conectividade**, pois a ideia de transitividade é naturalmente orientada por direção de caminho.
+O foco principal é a **remoção de arestas redundantes preservando a atingibilidade** entre os vértices. Em grafos direcionados acíclicos, isso corresponde à redução transitiva clássica. Em grafos não direcionados, a noção foi tratada separadamente, pois a ideia de transitividade é naturalmente orientada por direção de caminho.
 
 ## O que foi implementado
 
@@ -14,7 +14,7 @@ O foco principal é a **remoção de arestas redundantes preservando a atingibil
 - Redução transitiva segura por DFS para grafos direcionados.
 - Redução por fecho transitivo/Warshall para DAGs, usando matriz de adjacência.
 - Redução transitiva por **ordenação topológica reversa**, implementada em lista e matriz.
-- Redução de conectividade para grafos não direcionados, por floresta geradora DFS.
+- Remoção de ciclos para grafos não direcionados, por floresta geradora DFS (operação equivalente).
 - Validação simples de preservação de atingibilidade.
 - Tratamento mais robusto para entradas inválidas, laços, ciclos em algoritmos que exigem DAG e cabeçalhos de arquivo incorretos.
 - Comentários explicativos no código, priorizando documentação de decisões algorítmicas e responsabilidades das classes.
