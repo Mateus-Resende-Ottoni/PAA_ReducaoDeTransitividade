@@ -8,20 +8,35 @@ df = pd.read_csv('Resultados/resultados_paa.csv')
 sns.set_theme(style="whitegrid", palette="colorblind")
 plt.rcParams.update({'font.size': 12})
 
-# Criar a grade dividida por densidade e desenhar as curvas
-g = sns.FacetGrid(df, col="Densidade", height=5, aspect=1.2, sharey=False)
+# Obter as densidades únicas presentes nos dados
+densidades = df['Densidade'].unique()
 
-g.map_dataframe(sns.lineplot, x="V", y="TempoMedio_us", hue="Algoritmo", 
-                marker="o", linewidth=2, markersize=6)
-
-# Ativar escala logarítmica no eixo Y para cada subplot
-for ax in g.axes.flat:
-    ax.set_yscale('log') # Transforma o colapso de escala em curvas legíveis
-    ax.set_ylabel("Tempo Médio (µs) - Escala Log")
-
-g.set_axis_labels("Número de Vértices (|V|)", "Tempo de Execução")
-g.set_titles("Topologia DAG: {col_name}")
-g.add_legend(title="Algoritmo")
-
-plt.savefig('Resultados/analise_assintotica_reducao.png', dpi=300, bbox_inches='tight')
-plt.show()
+# Gerar e salvar um gráfico para cada densidade
+for densidade in densidades:
+    plt.figure(figsize=(7, 5))
+    
+    # Filtrar os dados apenas para a densidade atual
+    df_plot = df[df['Densidade'] == densidade]
+    
+    # Desenhar as curvas
+    sns.lineplot(data=df_plot, x="V", y="TempoMedio_us", hue="Algoritmo", 
+                 marker="o", linewidth=2, markersize=6)
+    
+    # Configurações dos eixos e título
+    plt.yscale('log')
+    plt.ylabel("Tempo Médio (µs) - Escala Log")
+    plt.xlabel("Número de Vértices (|V|)")
+    plt.title(f"Topologia DAG: {densidade}")
+    
+    # Posicionar a legenda fora do gráfico (opcional, mas recomendado para clareza)
+    plt.legend(title="Algoritmo", bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+    # Gerar nome do arquivo dinamicamente (ex: grafico_esparso.png)
+    nome_arquivo = f'Resultados/grafico_{str(densidade).lower()}.png'
+    
+    # Salvar a imagem
+    plt.savefig(nome_arquivo, dpi=300, bbox_inches='tight')
+    
+    # Limpar a figura atual para a próxima iteração
+    plt.clf()
+    plt.close()

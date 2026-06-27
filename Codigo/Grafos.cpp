@@ -10,23 +10,27 @@
 #include "Bibliotecas/GraphInList/GraphInList.h"
 #include "Bibliotecas/GraphInMatrix/GraphInMatrix.h"
 
-/*
- * Arquivo principal do trabalho.
- * -----------------------------
- * Este arquivo não implementa as estruturas internas do grafo; ele monta
- * exemplos, lê grafos de arquivo e executa as abordagens disponíveis:
- *
- *   1. Redução transitiva por DFS.
- *   2. Redução transitiva por Warshall/fecho transitivo para DAGs.
- *   3. Redução transitiva por ordenação topológica reversa para DAGs.
- *   4. Redução de conectividade por floresta geradora em grafos não direcionados.
- *
- * A separação é intencional: as classes GraphInList e GraphInMatrix concentram
- * a lógica algorítmica, enquanto main apenas demonstra e coordena a execução.
- */
+/// Arquivo principal do trabalho.
+/// Este arquivo não implementa as estruturas internas do grafo; ele monta
+/// exemplos, lê grafos de arquivo, executa as abordagens disponíveis :
+/// 
+///    1. Redução transitiva por DFS.
+///    2. Redução transitiva por Warshall/fecho transitivo para DAGs.
+///    3. Redução transitiva por ordenação topológica reversa para DAGs.
+///    4. Redução de conectividade por floresta geradora em grafos não direcionados.
+/// 
+///  Também salva resultados das baterias de testes
+///  A separação é intencional: as classes GraphInList e GraphInMatrix concentram
+///  a lógica algorítmica, enquanto main apenas demonstra e coordena a execução.
 
 
-// Usa ponteiros/funções lambda para executar qualquer um dos métodos
+/// @brief Mede o tempo médio de execução de um algoritmo em microssegundos.
+///
+/// Executa uma iteração inicial de aquecimento (warm-up) para estabilização de cache 
+/// e em seguida realiza uma bateria de testes repetidos para extrair a média temporal.
+///
+/// @param algoritmo Função lambda ou objeto invocável representando o algoritmo a ser testado.
+/// @return Tempo médio de execução em microssegundos.
 template <typename Func>
 double measureRuntimeMicroseconds(Func algoritmo) {
     const int NUM_EXECUCOES = 30;
@@ -47,7 +51,16 @@ double measureRuntimeMicroseconds(Func algoritmo) {
     return duracao_total.count() / NUM_EXECUCOES;
 }
 
-//Gera Directed Acyclical Graph (DAG) usando 
+/// @brief Gera um Grafo Direcionado Acíclico (DAG) aleatório baseado em restrição topológica.
+///
+/// Garante a aciclicidade forçando que a origem u seja estritamente menor que o destino v.
+/// Alimenta simultaneamente as estruturas de lista e matriz fornecidas.
+///
+/// @param V Número de vértices total do grafo.
+/// @param E Número de arestas desejado para a instância.
+/// @param grafoLista Referência para a estrutura de lista de adjacência.
+/// @param grafoMatriz Referência para a estrutura de matriz de adjacência.
+/// @throws std::invalid_argument Se o número de arestas ultrapassar o limite máximo para um DAG.
 void gerarDAG(int V, int E, GraphInList& grafoLista, GraphInMatrix& grafoMatriz) {
 
     int maxE = V * (V - 1) / 2;
@@ -81,7 +94,10 @@ void gerarDAG(int V, int E, GraphInList& grafoLista, GraphInMatrix& grafoMatriz)
     }
 }
 
-//Executa 30 vezes cada algoritmo com cada instância e calcula o valor médio do runtime de cada algoritmo para cada instância
+/// @brief Executa a bateria automatizada de testes empíricos do projeto.
+///
+/// Modula o comportamento dos algoritmos variando a quantidade de vértices e a 
+/// densidade (esparsa e densa), exportando as médias de tempo em formato CSV.
 void runExperiments() {
     std::cout << "Iniciando a bateria de testes empiricos...\n";
     
@@ -94,7 +110,7 @@ void runExperiments() {
     csv << "Algoritmo,V,E,Densidade,TempoMedio_us,ArestasRemovidas\n";
 
     // Tamanho das instâncias
-    std::vector<int> tamanhos_V = {10, 100, 500, 750, 1000};
+    std::vector<int> tamanhos_V = {10, 100, 500};
 
     for (int V : tamanhos_V) {
         int e_esparso = 2 * V;
@@ -144,6 +160,8 @@ void runExperiments() {
     std::cout << "Experimentos concluidos com sucesso. Resultados guardados em 'resultados_paa.csv'.\n";
 }
 
+/// @brief Imprime uma linha divisória estilizada para estruturação do console.
+/// @param title Texto descritivo que encabeça a seção.
 void printLine(const std::string &title)
 {
     std::cout << "\n============================================================\n";
@@ -151,16 +169,25 @@ void printLine(const std::string &title)
     std::cout << "============================================================\n";
 }
 
+/// @brief Exibe o veredicto da validação de alcançabilidade no fluxo padrão de saída.
+/// @param ok Booleano indicando se as matrizes de fechamento transitivo coincidem.
 void printReachabilityResult(bool ok)
 {
     std::cout << "Preserva atingibilidade? " << (ok ? "SIM" : "NAO") << "\n";
 }
 
+/// @brief Reporta uma exceção controlada informando a omissão forçada de um algoritmo.
+/// @param algorithm_name Nome do método cuja hipótese falhou.
+/// @param ex Referência para a exceção capturada em tempo de execução.
 void printSkippedAlgorithm(const std::string &algorithm_name, const std::exception &ex)
 {
     std::cout << "\n" << algorithm_name << " nao executada: " << ex.what() << "\n";
 }
 
+/// @brief Constrói e demonstra de forma didática o cenário controlado direcionado (DAG).
+///
+/// Instancia um grafo predefinido contendo redundâncias explícitas e executa a 
+/// validação comparativa cruzada entre todas as abordagens disponíveis.
 void runDirectedExample()
 {
     printLine("EXEMPLO 1 - Grafo direcionado com arestas transitivas");
@@ -231,6 +258,10 @@ void runDirectedExample()
     }
 }
 
+/// @brief Constrói e demonstra de forma didática o cenário controlado não direcionado.
+///
+/// Aplica a redução baseada em conectividade para extrair uma floresta geradora DFS,
+/// mitigando o problema dos ciclos lógicos de tamanho dois inerentes à bidirecionalidade.
 void runUndirectedExample()
 {
     printLine("EXEMPLO 2 - Grafo nao direcionado reduzido para floresta geradora");
@@ -265,6 +296,13 @@ void runUndirectedExample()
     printReachabilityResult(matrix_graph.hasSameReachabilityAs(forest_matrix));
 }
 
+/// @brief Lê e processa a topologia de um grafo a partir de um arquivo físico de entrada.
+///
+/// Interpreta o cabeçalho descritivo (vértices, arestas, flag direcionada) e carrega
+/// dinamicamente as estruturas locais para execução imediata das reduções adequadas.
+///
+/// @param file_name Caminho ou nome do arquivo de texto a ser mapeado.
+/// @throws std::runtime_error Se o arquivo não puder ser aberto ou violar a especificação do cabeçalho.
 void runFromFile(const std::string &file_name)
 {
     std::ifstream input(file_name.c_str());
