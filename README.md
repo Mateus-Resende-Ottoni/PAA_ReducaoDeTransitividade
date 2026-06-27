@@ -88,7 +88,7 @@ Para gerar, basta usar o comando, na pasta raiz, num ambient python (env)
 ```bash
 python plotar_resultados.py
 ```
-A imagem resultante chamada "analise_assintotica_reducao.png" estará na pasta "Resultados"
+As imagens resultantes chamadas "grafo_denso.png" e "grafo_esparso" estarão na pasta "Resultados".
 
 ## Abordagens de redução implementadas
 
