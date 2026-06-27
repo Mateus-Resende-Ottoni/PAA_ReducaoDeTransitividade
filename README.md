@@ -112,10 +112,10 @@ O algoritmo primeiro calcula uma ordenação topológica usando o algoritmo de K
 
 O algoritmo mantém um conjunto de bits `reachable[u]` indicando quais vértices são alcançáveis a partir de `u`. A aresta `u -> v` é removida se existir outro sucessor direto `w` de `u` que já alcance `v`, pois o caminho `u -> w ... v` substitui a aresta direta.
 
-### 4. Redução de conectividade em grafos não direcionados
+### 4. Redução de transitividade em grafos não direcionados
 
 Em grafos não direcionados, a operação equivalente não é redução transitiva no mesmo sentido de DAGs. A solução implementada remove ciclos e preserva componentes conexos, produzindo uma árvore geradora quando o grafo é conexo ou uma floresta geradora quando há múltiplos componentes.
 
 ## Observação conceitual
 
-A redução transitiva é naturalmente definida para grafos direcionados, especialmente DAGs. Para grafos não direcionados, a operação análoga implementada aqui é uma redução de conectividade: remove ciclos e mantém uma floresta geradora, preservando quais vértices são alcançáveis entre si.
+A redução transitiva é naturalmente definida para grafos direcionados, especialmente DAGs. Para grafos não direcionados, a operação análoga implementada aqui tem uma natureza diferente: remove se ciclos e mantém uma floresta geradora, preservando quais vértices são alcançáveis entre si.
