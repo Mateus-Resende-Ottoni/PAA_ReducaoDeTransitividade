@@ -88,7 +88,7 @@ Para gerar, basta usar o comando, na pasta raiz, num ambient python (env)
 ```bash
 python plotar_resultados.py
 ```
-As imagens resultantes chamadas "grafo_denso.png" e "grafo_esparso" estarão na pasta "Resultados".
+As imagens resultantes chamadas "grafico_denso.png" e "grafico_esparso" estarão na pasta "Resultados".
 
 ## Abordagens de redução implementadas
 
